@@ -99,6 +99,9 @@
         </cTool>
         <ccTool>
           <developmentMode>5</developmentMode>
+          <incDir>
+            <pElem>header</pElem>
+          </incDir>
         </ccTool>
         <fortranCompilerTool>
           <developmentMode>5</developmentMode>
@@ -106,6 +109,9 @@
         <asmTool>
           <developmentMode>5</developmentMode>
         </asmTool>
+        <linkerTool>
+          <commandLine>-lboost_serialization</commandLine>
+        </linkerTool>
       </compileType>
       <item path="README.md" ex="false" tool="3" flavor2="0">
       </item>
