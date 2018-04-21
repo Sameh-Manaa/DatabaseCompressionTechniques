@@ -38,6 +38,7 @@
                    kind="IMPORTANT_FILES_FOLDER">
       <itemPath>Makefile</itemPath>
     </logicalFolder>
+    <itemPath>README.md</itemPath>
   </logicalFolder>
   <sourceRootList>
     <Elem>header</Elem>
@@ -60,6 +61,8 @@
           <commandLine>-lboost_serialization</commandLine>
         </linkerTool>
       </compileType>
+      <item path="README.md" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="header/compression/dictionary_compressed_column.hpp"
             ex="false"
             tool="3"
@@ -104,6 +107,8 @@
           <developmentMode>5</developmentMode>
         </asmTool>
       </compileType>
+      <item path="README.md" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="header/compression/dictionary_compressed_column.hpp"
             ex="false"
             tool="3"
