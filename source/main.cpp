@@ -8,6 +8,7 @@
 /*this is the include for the example compressed column with empty implementation*/
 #include <compression/dictionary_compressed_column.hpp>
 #include <compression/RunLengthEncoding.hpp>
+#include <compression/BitVectorEncoding.hpp>
 
 #include  "unittest.hpp"
 
@@ -35,7 +36,7 @@ int main() {
     std::cout << "Unitests Passed!" << std::endl;
     
 */
-    if (!unittest<RunLengthEncoding, std::string>()) {
+    if (!unittest<BitVectorEncoding, std::string>()) {
         std::cout << "At least one Unittest Failed!" << std::endl;
         return -1;
     }
