@@ -43,7 +43,7 @@ namespace CoGaDB {
 
     private:
 
-        /*! values*/
+        /*compressed values structure*/
         /*vector<pair<[RUN_LENGTH],[VALUE]> >*/
         std::vector<std::pair<uint64_t, T> > compressedValues;
 
@@ -64,8 +64,8 @@ namespace CoGaDB {
 
     template<class T>
     bool RunLengthEncoding<T>::insert(const boost::any& newValue) {
-        //check for empty or different type value
-        if (newValue.empty() || typeid (T) != newValue.type()) {
+        //check for different type value
+        if (typeid (T) != newValue.type()) {
             return false;
         }
         T value = boost::any_cast<T>(newValue);
@@ -83,10 +83,6 @@ namespace CoGaDB {
 
     template<class T>
     bool RunLengthEncoding<T>::insert(const T& newValue) {
-        //check for empty value
-        if (newValue.empty()) {
-            return false;
-        }
         /*
          * if the newValue is same as last inserted value then increase runLength by 1
          * else insert a new record with runLength = 1 associated with the newValue
@@ -175,8 +171,8 @@ namespace CoGaDB {
 
     template<class T>
     bool RunLengthEncoding<T>::update(TID tid, const boost::any& newValue) {
-        //check for empty compressed column, or empty or different type value
-        if (compressedValues.empty() || newValue.empty() || typeid (T) != newValue.type()) {
+        //check for empty compressed column, or different type value
+        if (compressedValues.empty() || typeid (T) != newValue.type()) {
             return false;
         }
         T value = boost::any_cast<T>(newValue);
@@ -285,8 +281,8 @@ namespace CoGaDB {
 
     template<class T>
     bool RunLengthEncoding<T>::update(PositionListPtr tids, const boost::any& newValue) {
-        //check for empty tid list, empty compressed column, or empty or different type value
-        if (tids->empty() || compressedValues.empty() || newValue.empty() || typeid (T) != newValue.type()) {
+        //check for empty tid list, empty compressed column, or different type value
+        if (tids->empty() || compressedValues.empty() || typeid (T) != newValue.type()) {
             return false;
         }
 
@@ -402,11 +398,10 @@ namespace CoGaDB {
     unsigned int RunLengthEncoding<T>::getSizeinBytes() const throw () {
         uint64_t size_in_bytes = 0;
         for (uint64_t i = 0; i < compressedValues.size(); ++i) {
-            size_in_bytes += (compressedValues.at(i).second.size()) + sizeof (compressedValues.at(i).first);
+            size_in_bytes += sizeof (compressedValues.at(i).second) + sizeof (compressedValues.at(i).first);
         }
         return size_in_bytes;
     }
-
     /***************** End of Implementation Section ******************/
 
 
