@@ -3,6 +3,8 @@
 #include <core/compressed_column.hpp>
 #include <utility>
 #include <boost/serialization/utility.hpp>
+#include <map>
+#include <boost/serialization/map.hpp>
 
 namespace CoGaDB {
 
@@ -43,8 +45,9 @@ namespace CoGaDB {
 
     private:
 
-        /*! values*/
-        std::vector<std::pair<T, std::vector<bool> > > compressedValues;
+        /*!compressed values structure*/
+        /*map<[VALUE],vector<RECORD_FLAG> >*/
+        std::map<T, std::vector<bool> > valueBitVectorMap;
 
     };
 
@@ -63,109 +66,147 @@ namespace CoGaDB {
 
     template<class T>
     bool BitVectorEncoding<T>::insert(const boost::any& newValue) {
-
-        if (newValue.empty()) return false;
-
-        if (typeid (T) == newValue.type()) {
-            T value = boost::any_cast<T>(newValue);
-
-            bool valueFound = false;
-            for (uint64_t i = 0; i < compressedValues.size(); i++) {
-                if (compressedValues.at(i).first == value) {
-                    compressedValues.at(i).second.push_back(true);
-                    valueFound = true;
-                } else {
-                    compressedValues.at(i).second.push_back(false);
-                }
-            }
-            if (!valueFound) {
-                std::vector<bool> bitSet;
-                uint64_t bitSetSize = 1;
-
-                if (!compressedValues.empty()) {
-                    bitSetSize = compressedValues.at(0).second.size();
-                }
-
-                for (uint64_t i = 0; i < bitSetSize; i++) {
-                    if (i == bitSetSize - 1) {
-                        bitSet.push_back(true);
-                    } else {
-                        bitSet.push_back(false);
-                    }
-                }
-
-                compressedValues.push_back(std::make_pair(value, bitSet));
-            }
-            return true;
+        //check for different type value
+        if (typeid (T) != newValue.type()) {
+            return false;
         }
-        return false;
+
+        T value = boost::any_cast<T>(newValue);
+
+        /*
+         * loop over all the values and extend their bitvector with 1 value
+         * (TRUE if value == newValue, FALSE otherwise)
+         */
+        bool valueFound = false;
+        for (typename std::map < T, std::vector<bool> >::iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
+            if (it->first == value) {
+                it->second.push_back(true);
+                valueFound = true;
+            } else {
+                it->second.push_back(false);
+            }
+        }
+
+        //if newValue not found then construct its bitvector and insert it into the valueBitVectorMap
+        if (!valueFound) {
+            uint64_t bitSetSize = 1;
+
+            if (!valueBitVectorMap.empty()) {
+                bitSetSize = valueBitVectorMap.begin()->second.size();
+            }
+
+            std::vector<bool> bitSet(bitSetSize, false);
+            bitSet.at(bitSetSize - 1) = true;
+
+            valueBitVectorMap[value] = bitSet;
+        }
+        return true;
     }
 
     template<class T>
     bool BitVectorEncoding<T>::insert(const T& newValue) {
 
-        if (newValue.empty()) return false;
-
         T value = newValue;
 
+        /*
+         * loop over all the values and extend their bitvector with 1 value
+         * (TRUE if value == newValue, FALSE otherwise)
+         */
         bool valueFound = false;
-        for (uint64_t i = 0; i < compressedValues.size(); i++) {
-            if (compressedValues.at(i).first == value) {
-                compressedValues.at(i).second.push_back(true);
+        for (typename std::map < T, std::vector<bool> >::iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
+            if (it->first == value) {
+                it->second.push_back(true);
                 valueFound = true;
             } else {
-                compressedValues.at(i).second.push_back(false);
+                it->second.push_back(false);
             }
         }
+
+        //if newValue not found then construct its bitvector and insert it into the valueBitVectorMap
         if (!valueFound) {
-            std::vector<bool> bitSet;
             uint64_t bitSetSize = 1;
 
-            if (!compressedValues.empty()) {
-                bitSetSize = compressedValues.at(0).second.size();
+            if (!valueBitVectorMap.empty()) {
+                bitSetSize = valueBitVectorMap.begin()->second.size();
             }
 
-            for (uint64_t i = 0; i < bitSetSize; i++) {
-                if (i == bitSetSize - 1) {
-                    bitSet.push_back(true);
-                } else {
-                    bitSet.push_back(false);
-                }
-            }
+            std::vector<bool> bitSet(bitSetSize, false);
+            bitSet.at(bitSetSize - 1) = true;
 
-            compressedValues.push_back(std::make_pair(value, bitSet));
+            valueBitVectorMap[value] = bitSet;
         }
         return true;
     }
 
     template <typename T>
     template <typename InputIterator>
-    bool BitVectorEncoding<T>::insert(InputIterator, InputIterator) {
+    bool BitVectorEncoding<T>::insert(InputIterator first, InputIterator last) {
+        uint64_t sizeBeforeInsertion = valueBitVectorMap.empty() ? 0 : valueBitVectorMap.begin()->second.size();
+        uint64_t sizeAfterInsertion = sizeBeforeInsertion + std::distance(first, last);
+
+        //resize the bitvector for all the values to accommodate the new insertions
+        for (typename std::map < T, std::vector<bool> >::const_iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
+            it->second.resize(sizeAfterInsertion, false);
+        }
+
+        /*
+         * loop over all the values to be inserted, construct their bitvector 
+         * and insert them into the valueBitVectorMap
+         */
+        uint64_t i = 0;
+        for (InputIterator it = first; it < last; it++, i++) {
+
+            std::vector<bool> bitSet(sizeAfterInsertion, false);
+
+            valueBitVectorMap.insert(std::make_pair<T, std::vector<bool> >(*it, bitSet)).first->second.at(sizeBeforeInsertion + i) = true;
+        }
 
         return true;
     }
 
     template<class T>
     const boost::any BitVectorEncoding<T>::get(TID tid) {
-        if (compressedValues.empty()) return boost::any();
+        //check for empty data or out of range tid
+        if (valueBitVectorMap.empty() || valueBitVectorMap.begin()->second.size() <= tid) {
+            return boost::any();
+        }
 
-        for (uint64_t i = 0; i < compressedValues.size(); i++) {
-            if (compressedValues.at(i).second.at(tid)) {
-                return boost::any(compressedValues.at(i).first);
+        //loop over all the values check their bitvectors for the provided tid index set to TRUE
+        for (typename std::map < T, std::vector<bool> >::const_iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
+            if (it->second.at(tid)) {
+                return boost::any(it->first);
             }
         }
+
         return boost::any();
     }
 
     template<class T>
     void BitVectorEncoding<T>::print() const throw () {
+        std::cout << "| " << this->name_ << " |" << std::endl;
+        std::cout << "________________________" << std::endl;
 
+        if (valueBitVectorMap.empty()) {
+            return;
+        }
+
+        for (uint64_t i = 0; i < valueBitVectorMap.begin()->second.size(); i++) {
+            for (typename std::map < T, std::vector<bool> >::const_iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
+                if (it->second.at(i)) {
+                    std::cout << "| " << it->first << " |" << std::endl;
+                    break;
+                }
+            }
+        }
     }
 
     template<class T>
     size_t BitVectorEncoding<T>::size() const throw () {
-
-        return compressedValues.size();
+        if (valueBitVectorMap.empty()) {
+            return 0;
+        } else {
+            return valueBitVectorMap.begin()->second.size();
+        }
     }
 
     template<class T>
@@ -175,90 +216,114 @@ namespace CoGaDB {
 
     template<class T>
     bool BitVectorEncoding<T>::update(TID tid, const boost::any& newValue) {
-        if (compressedValues.empty()) return false;
-
-        T value;
-        if (typeid (T) == newValue.type()) {
-            value = boost::any_cast<T>(newValue);
-        } else {
+        //check for empty compressed column, or different type value or out of range tid
+        if (valueBitVectorMap.empty() || typeid (T) != newValue.type() || valueBitVectorMap.begin()->second.size() <= tid) {
             return false;
         }
 
+        T value = boost::any_cast<T>(newValue);
+
+        /*
+         * loop over all the values and check their bitvectors for the provided tid index set to TRUE
+         * flip it into FALSE
+         * and set the bit at the provided ti index for the newValue to TRUE
+         */
         bool valueUpdated = false;
-        for (uint64_t i = 0; i < compressedValues.size(); i++) {
-            if (compressedValues.at(i).second.at(tid)) {
-                compressedValues.at(i).second.at(tid) = false;
+        for (typename std::map < T, std::vector<bool> >::iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
+            if (it->second.at(tid)) {
+                it->second.at(tid) = false;
+                break;
             }
 
-            if (compressedValues.at(i).first == value) {
-                compressedValues.at(i).second.at(tid) = true;
+            if (it->first == value) {
+                it->second.at(tid) = true;
                 valueUpdated = true;
             }
         }
 
+        /*
+         * if the newValue not found then
+         * construct its bitvector and insert it into the valueBitVectorMap
+         */
         if (!valueUpdated) {
-            std::vector<bool> bitSet;
-            uint64_t bitSetSize = 1;
+            uint64_t i = 0;
 
-            if (!compressedValues.empty()) {
-                bitSetSize = compressedValues.at(0).second.size();
-            }
+            std::vector<bool> bitSet(valueBitVectorMap.begin()->second.size(), false);
 
-            for (uint64_t i = 0; i < bitSetSize; i++) {
-                if (i == tid) {
-                    bitSet.push_back(true);
-                } else {
-                    bitSet.push_back(false);
-                }
-            }
-
-            compressedValues.push_back(std::make_pair(value, bitSet));
+            valueBitVectorMap.insert(std::make_pair<T, std::vector<bool> >(value, bitSet)).first->second.at(tid) = true;
         }
 
         return true;
     }
 
     template<class T>
-    bool BitVectorEncoding<T>::update(PositionListPtr, const boost::any&) {
-        return false;
+    bool BitVectorEncoding<T>::update(PositionListPtr tids, const boost::any& newValue) {
+        //check for empty tid list, empty compressed column, or different type value
+        if (tids->empty() || valueBitVectorMap.empty() || typeid (T) != newValue.type()) {
+            return false;
+        }
+
+        T value = boost::any_cast<T>(newValue);
+
+        //loop over the tids and update them one by one
+        for (uint64_t i = 0; i < tids->size(); i++) {
+            this->update(tids->at(i), newValue);
+        }
+        return true;
     }
 
     template<class T>
     bool BitVectorEncoding<T>::remove(TID tid) {
-        if (compressedValues.empty() || compressedValues.at(0).second.size() <= tid) return false;
-
-        for (uint64_t i = 0; i < compressedValues.size(); i++) {
-            compressedValues.at(i).second.erase(compressedValues.at(i).second.begin() + tid);
+        //check for empty compressed column, or out of range tid
+        if (valueBitVectorMap.empty() || valueBitVectorMap.begin()->second.size() <= tid) {
+            return false;
         }
-        
-        if(compressedValues.at(0).second.size() == 0){
-            compressedValues.clear();
+
+        /*
+         * loop over all the values
+         * erase the bit corresponding to the provided tid index
+         */
+        for (typename std::map < T, std::vector<bool> >::iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
+            it->second.erase(it->second.begin() + tid);
+        }
+
+        //if all records have been deleted then clear the valueBitVectorMap
+        if (valueBitVectorMap.begin()->second.size() == 0) {
+            valueBitVectorMap.clear();
         }
         return true;
     }
 
     template<class T>
-    bool BitVectorEncoding<T>::remove(PositionListPtr) {
-        return false;
+    bool BitVectorEncoding<T>::remove(PositionListPtr tids) {
+        //check for empty tid list or empty compressed column
+        if (tids->empty() || valueBitVectorMap.empty()) {
+            return false;
+        }
+
+        //loop over the tids and remove them one by one
+        for (uint64_t i = 0; i < tids->size(); i++) {
+            this->remove(tids->at(i));
+        }
+        return true;
     }
 
     template<class T>
     bool BitVectorEncoding<T>::clearContent() {
-        compressedValues.clear();
+        valueBitVectorMap.clear();
         return true;
     }
 
     template<class T>
     bool BitVectorEncoding<T>::store(const std::string& path_) {
-        //string path("data/");
         std::string path(path_);
         path += "/";
         path += this->name_;
-        //std::cout << "Writing Column " << this->getName() << " to File " << path << std::endl;
+
         std::ofstream outfile(path.c_str(), std::ios_base::binary | std::ios_base::out);
         boost::archive::binary_oarchive oa(outfile);
 
-        oa << compressedValues;
+        oa << valueBitVectorMap;
 
         outfile.flush();
         outfile.close();
@@ -268,30 +333,32 @@ namespace CoGaDB {
     template<class T>
     bool BitVectorEncoding<T>::load(const std::string& path_) {
         std::string path(path_);
-        //std::cout << "Loading column '" << this->name_ << "' from path '" << path << "'..." << std::endl;
-        //string path("data/");
         path += "/";
         path += this->name_;
 
-        //std::cout << "Opening File '" << path << "'..." << std::endl;
         std::ifstream infile(path.c_str(), std::ios_base::binary | std::ios_base::in);
         boost::archive::binary_iarchive ia(infile);
-        ia >> compressedValues;
+
+        ia >> valueBitVectorMap;
+
         infile.close();
-
-
         return true;
     }
 
     template<class T>
     T& BitVectorEncoding<T>::operator[](const int tid) {
         static T t;
-        if (compressedValues.empty()) return t;
+        //check for empty data or out of range tid
+        if (valueBitVectorMap.empty() || valueBitVectorMap.begin()->second.size() <= tid) {
+            return t;
+        }
 
-        if (tid < compressedValues.size()) {
-            for (uint64_t i = 0; i < compressedValues.size(); i++) {
-                if (compressedValues.at(i).second.at(tid)) {
-                    return compressedValues.at(i).first;
+        //loop over all the values check their bitvectors for the provided tid index set to TRUE
+        if (tid < valueBitVectorMap.begin()->second.size()) {
+            for (typename std::map < T, std::vector<bool> >::const_iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
+                if (it->second.at(tid)) {
+
+                    return t = it->first;
                 }
             }
         } else {
@@ -302,7 +369,11 @@ namespace CoGaDB {
 
     template<class T>
     unsigned int BitVectorEncoding<T>::getSizeinBytes() const throw () {
-        return 0; //return values_.capacity()*sizeof(T);
+        uint64_t size_in_bytes = 0;
+        for (typename std::map < T, std::vector<bool> >::const_iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
+            size_in_bytes += sizeof (it->first) + (sizeof (bool) * it->second.size());
+        }
+        return size_in_bytes;
     }
 
     /***************** End of Implementation Section ******************/
