@@ -9,7 +9,7 @@
         <group>
             <file>file:/media/same7/0AD69019D69006DB/OVGU/Database%20Implementation%20Techniques/Programming%20Task/DB2Task/header/core/column.hpp</file>
             <file>file:/media/same7/0AD69019D69006DB/OVGU/Database%20Implementation%20Techniques/Programming%20Task/DB2Task/header/compression/dictionary_compressed_column.hpp</file>
-            <file>file:/media/same7/0AD69019D69006DB/OVGU/Database%20Implementation%20Techniques/Programming%20Task/DB2Task/header/compression/RunLengthEncoding.hpp</file>
+            <file>file:/media/same7/0AD69019D69006DB/OVGU/Database%20Implementation%20Techniques/Programming%20Task/DB2Task/header/compression/DictionaryEncoding.hpp</file>
             <file>file:/media/same7/0AD69019D69006DB/OVGU/Database%20Implementation%20Techniques/Programming%20Task/DB2Task/header/core/base_column.hpp</file>
             <file>file:/media/same7/0AD69019D69006DB/OVGU/Database%20Implementation%20Techniques/Programming%20Task/DB2Task/source/main.cpp</file>
             <file>file:/media/same7/0AD69019D69006DB/OVGU/Database%20Implementation%20Techniques/Programming%20Task/DB2Task/header/compression/BitVectorEncoding.hpp</file>
