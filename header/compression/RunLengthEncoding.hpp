@@ -379,18 +379,22 @@ namespace CoGaDB {
 
     template<class T>
     T& RunLengthEncoding<T>::operator[](const int tid) {
-        if (tid < compressedValues.size()) {
-            int sum = 0;
-            for (uint64_t i = 0; i < compressedValues.size(); i++) {
-                sum += compressedValues.at(i).first;
-                if (sum > tid) {
-                    return compressedValues.at(i).second;
-                }
-            }
-        } else {
-            std::cout << "fatal Error!!! Invalid TID!!! Attribute: " << this->name_ << " TID: " << tid << std::endl;
-        }
         static T t;
+
+        //check for empty data
+        if (compressedValues.empty()) {
+            return t;
+        }
+
+        //loop and accumulate sum over the runLength value till the sum exceeds the tuple id
+        int sum = 0;
+        for (uint64_t i = 0; i < compressedValues.size(); i++) {
+            sum += compressedValues.at(i).first;
+            if (sum > tid) {
+                return compressedValues.at(i).second;
+            }
+        }
+
         return t;
     }
 

@@ -354,16 +354,13 @@ namespace CoGaDB {
         }
 
         //loop over all the values check their bitvectors for the provided tid index set to TRUE
-        if (tid < valueBitVectorMap.begin()->second.size()) {
-            for (typename std::map < T, std::vector<bool> >::const_iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
-                if (it->second.at(tid)) {
+        for (typename std::map < T, std::vector<bool> >::const_iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
+            if (it->second.at(tid)) {
 
-                    return t = it->first;
-                }
+                return t = it->first;
             }
-        } else {
-            std::cout << "fatal Error!!! Invalid TID!!! Attribute: " << this->name_ << " TID: " << tid << std::endl;
         }
+
         return t;
     }
 
