@@ -98,15 +98,15 @@ namespace CoGaDB {
     template <typename T>
     template <typename InputIterator>
     bool RunLengthEncoding<T>::insert(InputIterator first, InputIterator last) {
-        const T& iteratorValue = *first;
+        T iteratorValue = *first;
         uint64_t runLength = 0;
         /*
          * readjust runLength if iteratorValue is same as last inserted value
          * set runLength = runLength of last inserted value
          */
-        if (compressedValues.back().second == iteratorValue) {
+        if (!compressedValues.empty() && compressedValues.back().second == iteratorValue) {
             runLength = compressedValues.back().first;
-            compressedValues.erase(compressedValues.back());
+            compressedValues.erase(compressedValues.end()-1);
         }
         /*
          * if currentIteratorValue[*it] is same as lastIteratorValue[iteratorValue] then increment runLength by 1
@@ -192,15 +192,15 @@ namespace CoGaDB {
                             i + 1 < compressedValues.size() && compressedValues.at(i + 1).second == value) {
                         compressedValues.at(i - 1).first += 1 + compressedValues.at(i + 1).first;
                         compressedValues.erase(compressedValues.begin() + i);
-                        compressedValues.erase(compressedValues.begin() + i + 1);
+                        compressedValues.erase(compressedValues.begin() + i);
                     }//if newValue is same as previous tuple only then combine the two tuples
                     else if (i >= 1 && compressedValues.at(i - 1).second == value) {
-                        compressedValues.erase(compressedValues.begin() + i);
                         compressedValues.at(i - 1).first += 1;
+                        compressedValues.erase(compressedValues.begin() + i);
                     }//if newValue is same as next tuple only then combine the two tuples
                     else if (i + 1 < compressedValues.size() && compressedValues.at(i + 1).second == value) {
-                        compressedValues.erase(compressedValues.begin() + i);
                         compressedValues.at(i + 1).first += 1;
+                        compressedValues.erase(compressedValues.begin() + i);
                     }//else update the tuple with the new value
                     else {
                         compressedValues.at(i).second = value;
@@ -220,9 +220,6 @@ namespace CoGaDB {
                         if (i > 0 && compressedValues.at(i - 1).second == value) {
                             compressedValues.at(i - 1).first += 1;
                             compressedValues.at(i).first -= 1;
-                            if (compressedValues.at(i).first == 0) {
-                                compressedValues.erase(compressedValues.begin() + i);
-                            }
                         }/*
                           * else insert a new compressed set with runLength 1 with the new value 
                           * and decrement the past set runLength by 1 
@@ -230,9 +227,6 @@ namespace CoGaDB {
                         else {
                             compressedValues.insert(compressedValues.begin() + i, std::make_pair<uint64_t, T>(1, value));
                             compressedValues.at(i + 1).first -= 1;
-                            if (compressedValues.at(i + 1).first == 0) {
-                                compressedValues.erase(compressedValues.begin() + i + 1);
-                            }
                         }
                     }/*
                       * if updated tuple is located last in its compressed set
@@ -247,9 +241,6 @@ namespace CoGaDB {
                         if (i < (compressedValues.size() - 1) && compressedValues.at(i + 1).second == value) {
                             compressedValues.at(i + 1).first += 1;
                             compressedValues.at(i).first -= 1;
-                            if (compressedValues.at(i).first == 0) {
-                                compressedValues.erase(compressedValues.begin() + i);
-                            }
                         }/*
                           * else insert a new compressed set with runLength 1 with the new value 
                           * and decrement the past set runLength by 1 
@@ -257,9 +248,6 @@ namespace CoGaDB {
                         else {
                             compressedValues.insert(compressedValues.begin() + i + 1, std::make_pair<uint64_t, T>(1, value));
                             compressedValues.at(i).first -= 1;
-                            if (compressedValues.at(i).first == 0) {
-                                compressedValues.erase(compressedValues.begin() + i);
-                            }
                         }
                     }/*
                       * else (when tuple is in the middle of a set with runLength greater than 1)
@@ -333,9 +321,11 @@ namespace CoGaDB {
             return false;
         }
 
-        //loop over the tids and remove them one by one
-        for (uint64_t i = 0; i < tids->size(); i++) {
-            this->remove(tids->at(i));
+        //loop over the tids and remove them one by one in reverse order
+        for (int64_t i = tids->size() - 1; i >= 0; i--) {
+            if (!(this->remove(tids->at(i)))) {
+                return false;
+            }
         }
         return true;
     }
@@ -400,9 +390,9 @@ namespace CoGaDB {
 
     template<class T>
     unsigned int RunLengthEncoding<T>::getSizeinBytes() const throw () {
-        uint64_t size_in_bytes = 0;
+        uint64_t size_in_bytes = sizeof(compressedValues);
         for (uint64_t i = 0; i < compressedValues.size(); ++i) {
-            size_in_bytes += sizeof (compressedValues.at(i).second) + sizeof (compressedValues.at(i).first);
+            size_in_bytes += sizeof (compressedValues.at(i).first) + sizeof (compressedValues.at(i).second);
         }
         return size_in_bytes;
     }
