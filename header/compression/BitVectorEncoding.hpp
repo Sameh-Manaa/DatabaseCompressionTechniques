@@ -145,7 +145,7 @@ namespace CoGaDB {
         uint64_t sizeAfterInsertion = sizeBeforeInsertion + std::distance(first, last);
 
         //resize the bitvector for all the values to accommodate the new insertions
-        for (typename std::map < T, std::vector<bool> >::const_iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
+        for (typename std::map < T, std::vector<bool> >::iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
             it->second.resize(sizeAfterInsertion, false);
         }
 
@@ -303,7 +303,9 @@ namespace CoGaDB {
 
         //loop over the tids and remove them one by one
         for (uint64_t i = 0; i < tids->size(); i++) {
-            this->remove(tids->at(i));
+            if (!(this->remove(tids->at(i)))) {
+                return false;
+            }
         }
         return true;
     }
@@ -366,9 +368,9 @@ namespace CoGaDB {
 
     template<class T>
     unsigned int BitVectorEncoding<T>::getSizeinBytes() const throw () {
-        uint64_t size_in_bytes = 0;
+        uint64_t size_in_bytes = sizeof (valueBitVectorMap);
         for (typename std::map < T, std::vector<bool> >::const_iterator it = valueBitVectorMap.begin(); it != valueBitVectorMap.end(); it++) {
-            size_in_bytes += sizeof (it->first) + (sizeof (bool) * it->second.size());
+            size_in_bytes += sizeof (it->first) + it->second.size() + sizeof (it->second);
         }
         return size_in_bytes;
     }
