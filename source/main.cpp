@@ -81,7 +81,7 @@ int main() {
     }
     std::cout << "Unitests Passed!\n\n\n" << std::endl;
 
-    std::cout << "Test #8: RunLengthEncoding<string>" << std::endl;
+    std::cout << "Test #9: RunLengthEncoding<string>" << std::endl;
     std::cout << "---------------------------------" << std::endl;
     if (!unittest<RunLengthEncoding, std::string>()) {
         std::cout << "At least one Unittest Failed!" << std::endl;

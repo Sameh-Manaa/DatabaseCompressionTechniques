@@ -59,6 +59,7 @@
           <incDir>
             <pElem>header</pElem>
           </incDir>
+          <commandLine>-Wall -Wextra -Werror</commandLine>
         </ccTool>
         <linkerTool>
           <commandLine>-lboost_serialization</commandLine>
@@ -120,6 +121,7 @@
           <incDir>
             <pElem>header</pElem>
           </incDir>
+          <commandLine>-Wall -Wextra -Werror</commandLine>
         </ccTool>
         <fortranCompilerTool>
           <developmentMode>5</developmentMode>

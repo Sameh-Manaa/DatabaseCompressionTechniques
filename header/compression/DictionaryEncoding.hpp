@@ -95,7 +95,7 @@ namespace CoGaDB {
 
         std::vector<bool> dictionaryCode;
 
-        for (int i = 0; i < code.size(); i++) {
+        for (uint i = 0; i < code.size(); i++) {
             dictionaryCode.push_back(code[i]);
         }
         return dictionaryCode;
@@ -160,10 +160,10 @@ namespace CoGaDB {
                     return it->first;
                 }
             }
-        } else {
-            std::cout << "fatal Error!!! Invalid TID!!! Attribute: " << this->name_ << " TID: " << tid << std::endl;
-            return boost::any();
         }
+
+        std::cout << "fatal Error!!! Invalid TID!!! Attribute: " << this->name_ << " TID: " << tid << std::endl;
+        return boost::any();
     }
 
     template<class T>
@@ -305,7 +305,7 @@ namespace CoGaDB {
     T & DictionaryEncoding<T>::operator[](const int tid) {
         static T t;
         //check for out of range tid
-        if (tid < encodedValues.size()) {
+        if ((uint) tid < encodedValues.size()) {
             //loop over all the pairs in the dictionary to get the value that corresponds to the dictionaryCode at tid
             for (typename std::map < T, std::vector<bool> >::iterator it = dictionary.begin(); it != dictionary.end(); it++) {
                 if (it->second == encodedValues.at(tid)) {
@@ -313,10 +313,10 @@ namespace CoGaDB {
                     return t;
                 }
             }
-        } else {
-            std::cout << "fatal Error!!! Invalid TID!!! Attribute: " << this->name_ << " TID: " << tid << std::endl;
-            return t;
         }
+
+        std::cout << "fatal Error!!! Invalid TID!!! Attribute: " << this->name_ << " TID: " << tid << std::endl;
+        return t;
     }
 
     template<class T>

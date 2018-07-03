@@ -2,6 +2,7 @@
 
 #include <core/compressed_column.hpp>
 #include <utility>
+#include <string>
 #include <boost/serialization/utility.hpp>
 
 namespace CoGaDB {
@@ -134,7 +135,7 @@ namespace CoGaDB {
         }
 
         //loop and accumulate sum over the runLength value till the sum exceeds the tuple id
-        int sum = 0;
+        uint sum = 0;
         for (uint64_t i = 0; i < compressedValues.size(); i++) {
             sum += compressedValues.at(i).first;
             if (sum > tid) {
@@ -177,8 +178,8 @@ namespace CoGaDB {
         }
         T value = boost::any_cast<T>(newValue);
 
-        int sum = 0;
-        for (int64_t i = 0; i < compressedValues.size(); i++) {
+        uint sum = 0;
+        for (uint64_t i = 0; i < compressedValues.size(); i++) {
             sum += compressedValues.at(i).first;
             if (sum > tid) {
                 //if newValue equal to the current value then do nothing
@@ -225,7 +226,7 @@ namespace CoGaDB {
                           * and decrement the past set runLength by 1 
                           */
                         else {
-                            compressedValues.insert(compressedValues.begin() + i, std::make_pair<uint64_t, T>(1, value));
+                            compressedValues.insert(compressedValues.begin() + i, std::pair<uint64_t, T>(1, value));
                             compressedValues.at(i + 1).first -= 1;
                         }
                     }/*
@@ -246,7 +247,7 @@ namespace CoGaDB {
                           * and decrement the past set runLength by 1 
                           */
                         else {
-                            compressedValues.insert(compressedValues.begin() + i + 1, std::make_pair<uint64_t, T>(1, value));
+                            compressedValues.insert(compressedValues.begin() + i + 1, std::pair<uint64_t, T>(1, value));
                             compressedValues.at(i).first -= 1;
                         }
                     }/*
@@ -255,10 +256,10 @@ namespace CoGaDB {
                       */
                     else {
                         T oldValue = compressedValues.at(i).second;
-                        compressedValues.insert(compressedValues.begin() + i, std::make_pair<uint64_t, T>(compressedValues.at(i).first - (sum - tid), oldValue));
+                        compressedValues.insert(compressedValues.begin() + i, std::pair<uint64_t, T>(compressedValues.at(i).first - (sum - tid), oldValue));
                         compressedValues.at(i + 1).first = 1;
                         compressedValues.at(i + 1).second = value;
-                        compressedValues.insert(compressedValues.begin() + i + 2, std::make_pair<uint64_t, T>(sum - tid - 1, oldValue));
+                        compressedValues.insert(compressedValues.begin() + i + 2, std::pair<uint64_t, T>(sum - tid - 1, oldValue));
                     }
                 }
                 return true;
@@ -274,7 +275,7 @@ namespace CoGaDB {
             return false;
         }
 
-        T value = boost::any_cast<T>(newValue);
+        //T value = boost::any_cast<T>(newValue);
 
         //loop over the tids and update them one by one
         for (uint64_t i = 0; i < tids->size(); i++) {
@@ -289,8 +290,8 @@ namespace CoGaDB {
             return false;
         }
 
-        int sum = 0;
-        for (int64_t i = 0; i < compressedValues.size(); i++) {
+        uint sum = 0;
+        for (uint64_t i = 0; i < compressedValues.size(); i++) {
             sum += compressedValues.at(i).first;
             if (sum > tid) {
                 //if runLength > 1 then decrement by 1

@@ -4,6 +4,7 @@
 #include <utility>
 #include <boost/serialization/utility.hpp>
 #include <map>
+#include <string>
 #include <boost/serialization/map.hpp>
 
 namespace CoGaDB {
@@ -158,7 +159,7 @@ namespace CoGaDB {
 
             std::vector<bool> bitSet(sizeAfterInsertion, false);
 
-            valueBitVectorMap.insert(std::make_pair<T, std::vector<bool> >(*it, bitSet)).first->second.at(sizeBeforeInsertion + i) = true;
+            valueBitVectorMap.insert(std::pair<T, std::vector<bool> >(*it, bitSet)).first->second.at(sizeBeforeInsertion + i) = true;
         }
 
         return true;
@@ -246,11 +247,11 @@ namespace CoGaDB {
          * construct its bitvector and insert it into the valueBitVectorMap
          */
         if (!valueUpdated) {
-            uint64_t i = 0;
+            //uint64_t i = 0;
 
             std::vector<bool> bitSet(valueBitVectorMap.begin()->second.size(), false);
 
-            valueBitVectorMap.insert(std::make_pair<T, std::vector<bool> >(value, bitSet)).first->second.at(tid) = true;
+            valueBitVectorMap.insert(std::pair<T, std::vector<bool> >(value, bitSet)).first->second.at(tid) = true;
         }
 
         return true;
@@ -263,7 +264,7 @@ namespace CoGaDB {
             return false;
         }
 
-        T value = boost::any_cast<T>(newValue);
+        //T value = boost::any_cast<T>(newValue);
 
         //loop over the tids and update them one by one
         for (uint64_t i = 0; i < tids->size(); i++) {
@@ -351,7 +352,7 @@ namespace CoGaDB {
     T& BitVectorEncoding<T>::operator[](const int tid) {
         static T t;
         //check for empty data or out of range tid
-        if (valueBitVectorMap.empty() || valueBitVectorMap.begin()->second.size() <= tid) {
+        if (valueBitVectorMap.empty() || valueBitVectorMap.begin()->second.size() <= (uint)tid) {
             return t;
         }
 
